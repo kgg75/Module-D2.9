@@ -1,0 +1,118 @@
+venv\scripts\activate
+cd newsportal
+python manage.py makemigraions
+python manage.py migrate
+python manage.py shell
+from news.models import *
+
+from django.db import models
+from django.contrib.auth.models import User
+from django.db.models import Sum
+
+
+# создание пользователей
+user1 = User.objects.create_user(username='Иванов')
+user1 = User.objects.get(pk=1)
+user1.save()
+
+user2 = User.objects.create_user(username='Петров')
+user2 = User.objects.get(pk=2)
+user2.save()
+
+
+# создание авторов
+author1 = Author.objects.create(user=user1)
+author1 = Author.objects.get(pk=1)
+author1.update_rating()
+author1.save()
+
+author2 = Author.objects.create(user=user2)
+author2 = Author.objects.get(pk=2)
+author2.update_rating()
+author2.save()
+
+
+# создание категорий
+cat1 = Category.objects.create(name='Политика')
+cat1.save()
+
+cat2 = Category.objects.create(name='Спорт')
+cat2.save()
+
+cat3 = Category.objects.create(name='Культура')
+cat3.save()
+
+cat4 = Category.objects.create(name='Авто')
+cat4.save()
+
+
+# создание новостей
+post1 = Post.objects.create(author=author1, news_type='статья', text='Это текст статьи №1', head='Заголовок №1')
+post1 = Post.objects.get(pk=1)
+for _ in range(6): post1.like()
+post1.preview()
+post1.save()
+
+post2 = Post.objects.create(author=author2, news_type='статья', text='Это текст статьи №2', head='Заголовок №2')
+post2 = Post.objects.get(pk=2)
+for _ in range(5): post2.dislike()
+post2.save()
+
+post3 = Post.objects.create(author=author1, news_type='новость', text='Это текст новости №3', head='Заголовок №3')
+post3 = Post.objects.get(pk=3)
+for _ in range(7): post3.like()
+post3.save()
+
+
+# создание комментариев
+comment1 = Comment.objects.create(post=post1, user=user2, text='комментарий №1 к статье №1')
+comment1 = Comment.objects.get(pk=1)
+for _ in range(9): comment1.like()
+comment1.save()
+
+comment2 = Comment.objects.create(post=post1, user=user1, text='комментарий №2 к статье №1')
+comment2 = Comment.objects.get(pk=2)
+for _ in range(8): comment2.dislike()
+comment2.save()
+
+comment3 = Comment.objects.create(post=post2, user=user2, text='комментарий №1 к статье №2')
+comment3 = Comment.objects.get(pk=3)
+for _ in range(4): comment3.like()
+comment3.save()
+
+comment4 = Comment.objects.create(post=post3, user=user1, text='комментарий №1 к новости №3')
+comment4 = Comment.objects.get(pk=4)
+for _ in range(6): comment4.dislike()
+comment4.save()
+
+comment5 = Comment.objects.create(post=post3, user=user2, text='комментарий №2 к новости №3')
+for _ in range(2): comment5.like()
+
+comment6 = Comment.objects.create(post=post3, user=user2, text='комментарий №3 к новости №3')
+for _ in range(2): comment6.dislike()
+
+comment7 = Comment.objects.create(post=post3, user=user1, text='комментарий №4 к новости №3')
+for _ in range(1): comment7.like()
+
+
+# username и рейтинг лучшего пользователя
+author1.update_rating()
+author2.update_rating()
+Author.objects.order_by('-rating')[0].user.username
+Author.objects.order_by('-rating')[0].rating
+
+
+# дата добавления, username автора, рейтинг, заголовок и превью лучшей статьи, основываясь на лайках/дислайках к этой статье.
+Post.objects.order_by('-rating')[0].author
+Post.objects.order_by('-rating')[0].datetime
+Post.objects.order_by('-rating')[0].rating
+Post.objects.order_by('-rating')[0].head
+Post.objects.order_by('-rating')[0].preview()
+
+
+# все комментарии (дата, пользователь, рейтинг, текст) к этой статье.
+post_n = Post.objects.order_by('-rating')[0].id
+for _ in Comment.objects.filter(post_id=post_n).values('datetime'): print (list(_.values())[0])
+for _ in Comment.objects.filter(post_id=post_n).values('user'): print (Author.objects.get(user=int(list(_.values())[0])).user.username)
+for _ in Comment.objects.filter(post_id=post_n).values('rating'): print (int(list(_.values())[0]))
+for _ in Comment.objects.filter(post_id=post_n).values('text'): print (str(list(_.values())[0]))
